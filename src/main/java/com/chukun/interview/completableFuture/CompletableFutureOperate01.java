@@ -19,7 +19,7 @@ import java.util.concurrent.*;
  *     仅等待Future集合中最快结束的任务完成（有可能因为它们试图通过不同的方式计算同
  * 一个值），并返回它的结果
  */
-public class FutureDemo {
+public class CompletableFutureOperate01 {
 
     public static void main(String[] args) throws InterruptedException {
         ExecutorService executorService = Executors.newCachedThreadPool();
