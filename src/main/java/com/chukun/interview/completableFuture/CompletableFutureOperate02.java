@@ -2,6 +2,7 @@ package com.chukun.interview.completableFuture;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -10,7 +11,7 @@ import java.util.stream.Stream;
 
 /**
  * @author chukun
- *  completableFuture 操作
+ * completableFuture 操作
  */
 public class CompletableFutureOperate02 {
 
@@ -30,9 +31,9 @@ public class CompletableFutureOperate02 {
         People people = null;
         for (int i = 0; i < 10; i++) {
             String str = UUID.randomUUID().toString().replaceAll("-", "");
-            people  = new People();
-            people.setId(str.substring(0,10));
-            people.setName(str.substring(10,18));
+            people = new People();
+            people.setId(str.substring(0, 10));
+            people.setName(str.substring(10, 18));
             people.setStat(i % 3);
             peoples.add(people);
         }
@@ -48,31 +49,34 @@ public class CompletableFutureOperate02 {
         List<String> ids = findIds();
         // 拼接操作
         Stream<CompletableFuture<String>> zip = ids.stream().map(i -> {
-                CompletableFuture<String> nameTask = findName(i);
-                CompletableFuture<Integer> stateTask = findState(i);
-                return nameTask
-                        .thenCombineAsync(stateTask, (name, state) -> String.format("name=%s***stat=%d", name,
-                                state));
-            });
+            CompletableFuture<String> nameTask = findName(i);
+            CompletableFuture<Integer> stateTask = findState(i);
+            // nameTask Future 和 stateTask future执行完毕之后，返回一个新的future
+            return nameTask
+                    .thenCombineAsync(stateTask, (name, state) -> String.format("name=%s&&stat=%d", name, state));
+        });
         List<CompletableFuture<String>> completableList = zip.collect(Collectors.toList());
         CompletableFuture<String>[] completableFutures =
-                    completableList.toArray(new CompletableFuture[completableList.size()]);
+                completableList.toArray(new CompletableFuture[completableList.size()]);
         // all done
         CompletableFuture<Void> allDone = CompletableFuture.allOf(completableFutures);
         CompletableFuture<List<String>> resultFutures = allDone.thenApply(v ->
                 completableList.stream().map(CompletableFuture::join).collect(Collectors.toList()));
         List<String> result = resultFutures.join();
-        System.out.println(result + "耗时: "+(System.currentTimeMillis() - start));
+        System.out.println(result);
+        System.out.println("耗时: " + (System.currentTimeMillis() - start));
     }
 
     /**
      * 获取id
+     *
      * @return
      */
     private static List<String> findIds() {
         try {
             TimeUnit.SECONDS.sleep(1);
-        }catch (Exception e) {}
+        } catch (Exception e) {
+        }
         return peoples.stream().map(People::getId).collect(Collectors.toList());
     }
 
@@ -81,20 +85,19 @@ public class CompletableFutureOperate02 {
      * @return
      */
     private static CompletableFuture<String> findName(String id) {
-        List<String> list = peoples.stream().map(People::getId).collect(Collectors.toList());
-        return CompletableFuture.supplyAsync(() -> peoples.stream().filter(people -> list.contains(people.getId()))
-                .map(People::getName).findFirst().get());
+        Map<String, String> mapList = peoples.stream().collect(Collectors.toMap(People::getId, People::getName));
+        return CompletableFuture.supplyAsync(() -> mapList.get(id));
     }
 
     /**
      * 获取状态
+     *
      * @param id
      * @return
      */
     private static CompletableFuture<Integer> findState(String id) {
-        List<String> list = peoples.stream().map(People::getId).collect(Collectors.toList());
-        return CompletableFuture.supplyAsync(() -> peoples.stream().filter(people -> list.contains(people.getId()))
-                .map(People::getStat).findFirst().get());
+        Map<String, Integer> mapList = peoples.stream().collect(Collectors.toMap(People::getId, People::getStat));
+        return CompletableFuture.supplyAsync(() -> mapList.get(id));
     }
 
     /**
@@ -106,9 +109,10 @@ public class CompletableFutureOperate02 {
         private String name;
         private Integer stat;
 
-        public People () {}
+        public People() {
+        }
 
-        public People (String id,String name,Integer stat) {
+        public People(String id, String name, Integer stat) {
             this.id = id;
             this.name = name;
             this.stat = stat;
