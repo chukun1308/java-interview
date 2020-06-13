@@ -9,6 +9,10 @@ import java.util.stream.Collectors;
 /**
  * @author chukun
  *  CompletableFuture 与 Stream基本操作
+ *
+ *  1. stream 同步调用 rpc 详见 {@link CompletableFutureStreamExample#useRpcSync()}
+ *
+ *  2. stream 异步调用 rpc 详见 {@link CompletableFutureStreamExample#useRpcAsync()}
  */
 public class CompletableFutureStreamExample {
 
