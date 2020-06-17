@@ -21,6 +21,26 @@
             <artifactId>cglib</artifactId>
             <version>3.2.5</version>
         </dependency>
+        <!-- reactive-streams 反应式编程 接口规范 -->
+        <dependency>
+            <groupId>org.reactivestreams</groupId>
+            <artifactId>reactive-streams</artifactId>
+            <version>1.0.3</version>
+        </dependency>
+        <!-- 技术兼容性工具包  实现一致测试的标准测试套件-->
+        <dependency>
+            <groupId>org.reactivestreams</groupId>
+            <artifactId>reactive-streams-tck</artifactId>
+            <version>1.0.3</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- 反应式编程 框架 -->
+        <dependency>
+            <groupId>io.reactivex.rxjava3</groupId>
+            <artifactId>rxjava</artifactId>
+            <version>3.0.0</version>
+        </dependency>
+
     </dependencies>
 
 

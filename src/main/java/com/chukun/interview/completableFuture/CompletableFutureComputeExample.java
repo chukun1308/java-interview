@@ -47,7 +47,7 @@ public class CompletableFutureComputeExample {
 
 
     /**
-     * 基于runAsync系列方法实现无返回值的异步计算
+     * 基于runAsync系列方法实现无返回值的异步计算(自定义线程池)
      * @throws ExecutionException
      * @throws InterruptedException
      */
@@ -90,7 +90,7 @@ public class CompletableFutureComputeExample {
     }
 
     /**
-     * 基于supplyAsync系列方法实现有返回值的异步计算
+     * 基于supplyAsync系列方法实现有返回值的异步计算(自定义线程池)
      * @throws ExecutionException
      * @throws InterruptedException
      */
