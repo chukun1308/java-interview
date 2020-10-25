@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author chukun
  *  线程停止
- *   停止线程的方式是使用 interrupt，但 interrupt 仅仅起到通知被停止线程的作用。
+ *   停止线程的方式是interrupt，但 interrupt 仅仅起到通知被停止线程的作用。
  *   而对于被停止的线程而言，它拥有完全的自主权，它既可以选择立即停止，也可以选择一段时间后停止，也可以选择压根不停止
  */
 public class ThreadStopDemo02 implements Runnable{
