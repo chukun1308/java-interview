@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
  * @author chukun
  *  设置completableFuture结果
  */
-public class CompelableFutureSetExample {
+public class CompletableFutureSetExample {
 
     // 自定义线程池
     private final static int AVAILABLE_PROCESSORS = Runtime.getRuntime().availableProcessors();
@@ -42,5 +42,7 @@ public class CompelableFutureSetExample {
          *  future的get()方法企图获取future的结果，如果future的结果没有被设置，则调用线程会被阻塞
           */
         System.out.println(future.get());
+
+        BIZ_POOL_EXECUTOR.shutdown();
     }
 }
