@@ -1,0 +1,101 @@
+什么是中断？
+ 首先
+ 一个线程不应该由其他线程来强制中断或停止，而是应该由线程自己自行停止。
+ 所以，Thread.stop, Thread.suspend, Thread.resume 都已经被废弃了。
+
+ 其次
+ 在Java中没有办法立即停止一条线程，然而停止线程却显得尤为重要，如取消一个耗时操作。
+ 因此，Java提供了一种用于停止线程的机制——中断。
+
+ 中断只是一种协作机制，Java没有给中断增加任何语法，中断的过程完全需要程序员自己实现。
+ 若要中断一个线程，你需要手动调用该线程的interrupt方法，该方法也仅仅是将线程对象的中断标识设成true；
+ 接着你需要自己写代码不断地检测当前线程的标识位，如果为true，表示别的线程要求这条线程中断，
+ 此时究竟该做什么需要你自己写代码实现。
+
+ 每个线程对象中都有一个标识，用于表示线程是否被中断；该标识位为true表示中断，为false表示未中断；
+ 通过调用线程对象的interrupt方法将该线程的标识位设为true；可以在别的线程中调用，也可以在自己的线程中调用。
+
+中断的相关API方法?
+  public void interrupt()
+    实例方法，实例方法interrupt()仅仅是设置线程的中断状态为true，不会停止线程
+
+  public static boolean interrupted()
+     静态方法，Thread.interrupted();
+     判断线程是否被中断，并清除当前中断状态,这个方法做了两件事：
+        1 返回当前线程的中断状态
+        2 将当前线程的中断状态设为false
+
+  public boolean isInterrupted()
+     实例方法，判断当前线程是否被中断（通过检查中断标志位）
+
+
+如何停止线程？
+  方法:
+    1.通过一个volatile变量实现,详见代码: ThreadInterruptOperator.volatileStop()
+    2.通过AtomicBoolean，详见代码: ThreadInterruptOperator.atomicBooleanStop()
+    3.通过Thread类自带的中断api方法实现,详见代码:
+        ThreadInterruptOperator.interruptStop(),  ThreadInterruptOperator.interruptExceptionStop()
+
+  当前线程的中断标识为true，是不是就立刻停止？
+    具体来说，当对一个线程，调用 interrupt() 时：
+
+    ①  如果线程处于正常活动状态，那么会将该线程的中断标志设置为 true，仅此而已。
+    被设置中断标志的线程将继续正常运行，不受影响。所以， interrupt() 并不能真正的中断线程，需要被调用的线程自己进行配合才行。
+
+    ②  如果线程处于被阻塞状态（例如处于sleep, wait, join 等状态），在别的线程中调用当前线程对象的interrupt方法，
+    那么线程将立即退出被阻塞状态，并抛出一个InterruptedException异常。
+
+     详见代码:  ThreadInterruptOperator.interruptNotImmediateStop()
+
+    中断只是一种协同机制，修改中断标识位仅此而已，不是立刻stop打断
+
+
+  静态方法Thread.interrupted()
+    静态方法Thread.interrupted():
+      详见代码: ThreadInterruptOperator.staticIsInterrupt()
+
+    说明:
+      静态方法，Thread.interrupted();
+      判断线程是否被中断，并清除当前中断状态，类似i++
+      这个方法做了两件事：
+      1 返回当前线程的中断状态
+      2 将当前线程的中断状态设为false
+
+      这个方法有点不好理解，因为连续调用两次的结果可能不一样,详见源码注释:
+        Tests whether the current thread has been interrupted. The interrupted status of the thread is cleared by this method.
+        In other words, if this method were to be called twice in succession, the second call would return false (unless the current thread were interrupted again,
+        after the first call had cleared its interrupted status and before the second call had examined it).
+
+    都会返回中断状态，两者对比:
+      实例方法:isInterrupted():
+            public boolean isInterrupted() {
+                return isInterrupted(false);
+            }
+
+      实例方法:interrupted():
+            public static boolean interrupted() {
+                return currentThread().isInterrupted(true);
+            }
+
+    结论:
+      静态方法interrupted将会清除中断状态（传入的参数ClearInterrupted为true），
+
+      实例方法isInterrupted则不会（传入的参数ClearInterrupted为false）。
+
+
+中断总结:
+  线程中断相关的方法：
+
+  interrupt()方法是一个实例方法
+  它通知目标线程中断，也就是设置目标线程的中断标志位为true，中断标志位表示当前线程已经被中断了。
+
+  isInterrupted()方法也是一个实例方法
+  它判断当前线程是否被中断（通过检查中断标志位）并获取中断标志
+
+  Thread类的静态方法interrupted()
+  返回当前线程的中断状态(boolean类型)且将当前线程的中断状态设为false，此方法调用之后会清除当前线程的中断标志位的状态（将中断标志置为false了），返回当前值并清零置false
+
+
+
+
+
