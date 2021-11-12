@@ -95,7 +95,27 @@
   Thread类的静态方法interrupted()
   返回当前线程的中断状态(boolean类型)且将当前线程的中断状态设为false，此方法调用之后会清除当前线程的中断标志位的状态（将中断标志置为false了），返回当前值并清零置false
 
+lockSupport
 
+  是什么?
 
+    LockSupport是用来创建锁和其他同步类的基本线程阻塞原语。
+    LockSupport中的park() 和 unpark() 的作用分别是阻塞线程和解除阻塞线程。
+
+    LockSupport类使用了一种名为Permit（许可）的概念来做到阻塞和唤醒线程的功能， 每个线程都有一个许可(permit)，
+    permit只有两个值1和零，默认是零。
+    可以把许可看成是一种(0,1)信号量（Semaphore），但与 Semaphore 不同的是，许可的累加上限是1。
+
+  主要方法
+    阻塞：
+     park() /park(Object blocker) 阻塞当前线程/阻塞传入的具体线程
+
+     permit默认是零，所以一开始调用park()方法，当前线程就会阻塞，直到别的线程将当前线程的permit设置为1时，park方法会被唤醒，然后会将permit再次设置为零并返回。
+
+    唤醒：
+     unpark(Thread thread)  唤醒处于阻塞状态的指定线程
+     调用unpark(thread)方法后，就会将thread线程的许可permit设置成1(注意多次调用unpark方法，不会累加，permit值还是1)会自动唤醒thread线程，即之前阻塞中的LockSupport.park()方法会立即返回。
+
+   详见代码: LockSupportDemo.java
 
 
