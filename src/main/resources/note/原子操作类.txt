@@ -1,0 +1,192 @@
+1. 基本类型原子类
+  简介
+    AtomicInteger  AtomicBoolean  AtomicLong
+
+  常用API简介
+    public final int get() //获取当前的值
+    public final int getAndSet(int newValue)//获取当前的值，并设置新的值
+    public final int getAndIncrement()//获取当前的值，并自增
+    public final int getAndDecrement() //获取当前的值，并自减
+    public final int getAndAdd(int delta) //获取当前的值，并加上预期的值
+    boolean compareAndSet(int expect, int update) //如果输入的数值等于预期值，则以原子方式将该值设置为输入值（update）
+
+  案例详见: CasOperator.java
+
+2.数组类型原子类
+  简介
+   AtomicIntegerArray  AtomicLongArray  AtomicReferenceArray
+
+  案例: 详见:AtomicIntegerArrayOperator.java
+
+3.引用类型原子类
+   简介
+       AtomicReference
+          可以实现自旋锁，详见代码: WriteSpinLock.java
+       AtomicStampedReference
+         携带版本号的引用类型原子类，可以解决ABA问题，解决修改过几次。详见代码: CasABASolution.java                                                 详见:  6.5.1.2解决方案---->版本号时间戳原子引用
+       AtomicMarkableReference
+         原子更新带有标记位的引用类型对象，解决是否修改过，状态戳(true/false)原子引用,详见代码:AtomicMarkableReferenceOperator.java
+
+4.对象的属性修改原子类
+   简介
+     AtomicIntegerFieldUpdater       原子更新对象中int类型字段的值
+     AtomicLongFieldUpdater          原子更新对象中Long类型字段的值
+     AtomicReferenceFieldUpdater     原子更新引用类型字段的值
+
+   使用目的
+     以一种线程安全的方式操作非线程安全对象内的某些字段,减少加锁的力度
+
+   使用要求
+     更新的对象属性必须使用 public volatile 修饰符。
+     因为对象的属性修改类型原子类都是抽象类，所以每次使用都必须使用静态方法newUpdater()创建一个更新器，并且需要设置想要更新的类和属性。
+
+   案例
+     AtomicIntegerFieldUpdater案例，代码详见: AtomicIntegerFieldUpdaterOperator.java
+
+     AtomicReferenceFieldUpdater案例,  代码详见: AtomicReferenceFieldUpdaterOperator.java
+
+5.原子操作增强类原理深度解析
+  简介:
+   DoubleAccumulator  DoubleAdder  LongAccumulator  LongAdder
+
+  点赞计数器，看看性能
+    常用API
+      public void add(long x)   将当前的value加x
+      public void increment()   将当前的value加1
+      public void decrement()   将当前的value减1
+      public long sum()         返回当前值，在没有并发的情况下，sum会返回一个精确值，但是存在并发，sum的值就会不准确
+
+  示例:
+     LongAdderAPIOperator.java
+
+  源码、原理分析
+    1.架构图
+       longAdder架构图.png
+
+    2.原理(LongAdder为什么这么快)
+      LongAdder是Striped64的子类
+
+      Striped64
+
+        Striped64有几个比较重要的成员函数
+          /** Number of CPUS, to place bound on table size        CPU数量，即cells数组的最大长度 */
+          static final int NCPU = Runtime.getRuntime().availableProcessors();
+
+          /**
+           * Table of cells. When non-null, size is a power of 2.
+          cells数组，为2的幂，2,4,8,16.....，方便以后位运算
+           */
+          transient volatile Cell[] cells;
+
+          /**基础value值，当并发较低时，只累加该值主要用于没有竞争的情况，通过CAS更新。
+           * Base value, used mainly when there is no contention, but also as
+           * a fallback during table initialization races. Updated via CAS.
+           */
+          transient volatile long base;
+
+          /**创建或者扩容Cells数组时使用的自旋锁变量调整单元格大小（扩容），创建单元格时使用的锁。
+           * Spinlock (locked via CAS) used when resizing and/or creating Cells.
+           */
+          transient volatile int cellsBusy;
+
+      Cell
+        java.util.concurrent.atomic 下 Striped64 的一个内部类
+
+      LongAdder为什么这么快
+         LongAdder的基本思路就是分散热点，将value值分散到一个Cell数组中，不同线程会命中到数组的不同槽中，各个线程只对自己槽中的那个值进行CAS操作，这样热点就被分散了，冲突的概率就小很多。如果要获取真正的long值，只要将各个槽中的变量值累加返回。
+
+         sum()会将所有Cell数组中的value和base累加作为返回值，核心的思想就是将之前AtomicLong一个value的更新压力分散到多个value中去，从而降级更新热点。
+
+         longAdder为什么快.png
+
+    3.源码解读深度分析
+      入口方法---> longAdder.increment() --> add(1L) --->longAccumulate(long x, LongBinaryOperator fn,boolean wasUncontended)
+
+      add(1L)详解:
+        条件递增，逐步解析
+          1.最初无竞争时只更新base；
+          2.如果更新base失败后，首次新建一个Cell[]数组
+          3.当多个线程竞争同一个Cell比较激烈时，可能就要对Cell[]扩容
+
+          longAdder-add()方法解析.png
+          longAdder-add()执行流程.png
+
+        longAccumulate()
+          Striped64中一些变量或者方法的定义
+            striped64变量.png
+
+          线程hash值：probe
+             longAdder#probe.png
+
+          总览:
+            longAdder-longAccumulate()总览.png
+
+          计算:
+            刚刚要初始化Cell[]数组(首次新建)
+               未初始化过Cell[]数组，尝试占有锁并首次初始化cells数组
+                cell-新建.png
+
+            兜底
+              多个线程尝试CAS修改失败的线程会走到这个分支
+               兜底计算.png
+
+            Cell数组不再为空且可能存在Cell数组扩容
+               多个线程同时命中一个cell的竞争: cell扩容.png
+
+               步骤:
+                 1. cell扩容步骤01.png
+                 2. cell扩容步骤02.png
+                 3. cell扩容步骤03.png
+                 4. cell扩容步骤04.png
+                 5. cell扩容步骤05.png
+                 5. cell扩容步骤06.png
+
+                 cell扩容步骤总结.png
+
+        sum()
+          sum()会将所有Cell数组中的value和base累加作为返回值。
+          核心的思想就是将之前AtomicLong一个value的更新压力分散到多个value中去，从而降级更新热点。
+
+          longAdder-sum().png
+
+    4. 使用总结
+       AtomicLong
+         线程安全，可允许一些性能损耗，要求高精度时可使用
+         保证精度，性能代价
+         AtomicLong是多个线程针对单个热点值value进行原子操作
+
+       LongAdder
+         当需要在高并发下有较好的性能表现，且对值的精确度要求不高时，可以使用
+         保证性能，精度代价
+         LongAdder是每个线程拥有自己的槽，各个线程一般只对自己槽中的那个值进行CAS操作
+
+  小总结
+    AtomicLong
+      原理
+        CAS+自旋  incrementAndGet
+
+      场景
+        低并发下的全局计算
+        AtomicLong能保证并发情况下计数的准确性，其内部通过CAS来解决并发安全性的问题。
+
+      缺陷
+        高并发后性能急剧下降
+        AtomicLong的自旋会成为瓶颈
+          N个线程CAS操作修改线程的值，每次只有一个成功过，其它N - 1失败，失败的不停的自旋直到成功，这样大量失败自旋的情况，一下子cpu就打高了。
+
+
+    LongAdder
+       原理
+         CAS+Base+Cell数组分散
+         空间换时间并分散了热点数据
+
+       场景
+         高并发下的全局计算
+
+       缺陷
+         sum求和后还有计算线程修改结果的话，最后结果不够准确
+
+
+
+
+
